@@ -68,7 +68,19 @@ func (c *ConfigMapsController) add(obj interface{}) {
 		return
 	}
 
-	buffer.Push(configMapState.TypeMeta, configMapState.GetName(), configMapState.GetNamespace(), configMapState.GetResourceVersion(), time.Now())
+	if configMapState == nil {
+		return
+	}
+
+	item := buffer.BufferItem{
+		TypeMeta:               configMapState.TypeMeta,
+		Name:                   configMapState.GetName(),
+		Namespace:              configMapState.GetNamespace(),
+		PendingResourceVersion: configMapState.GetResourceVersion(),
+		LastProcessed:          time.Now(),
+		Attempts:               0,
+	}
+	buffer.Push(&item)
 }
 
 func (c *ConfigMapsController) update(old, new interface{}) {
@@ -88,5 +100,13 @@ func (c *ConfigMapsController) update(old, new interface{}) {
 		return
 	}
 
-	buffer.Push(newState.TypeMeta, newState.GetName(), newState.GetNamespace(), newState.GetResourceVersion(), time.Now())
+	item := buffer.BufferItem{
+		TypeMeta:               newState.TypeMeta,
+		Name:                   newState.GetName(),
+		Namespace:              newState.GetNamespace(),
+		PendingResourceVersion: newState.GetResourceVersion(),
+		LastProcessed:          time.Now(),
+		Attempts:               0,
+	}
+	buffer.Push(&item)
 }

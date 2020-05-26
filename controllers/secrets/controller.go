@@ -68,7 +68,15 @@ func (c *SecretsController) add(obj interface{}) {
 		return
 	}
 
-	buffer.Push(secretState.TypeMeta, secretState.GetName(), secretState.GetNamespace(), secretState.GetResourceVersion(), time.Now())
+	item := buffer.BufferItem{
+		TypeMeta:               secretState.TypeMeta,
+		Name:                   secretState.GetName(),
+		Namespace:              secretState.GetNamespace(),
+		PendingResourceVersion: secretState.GetResourceVersion(),
+		LastProcessed:          time.Now(),
+		Attempts:               0,
+	}
+	buffer.Push(&item)
 }
 
 func (c *SecretsController) update(old, new interface{}) {
@@ -88,5 +96,13 @@ func (c *SecretsController) update(old, new interface{}) {
 		return
 	}
 
-	buffer.Push(newState.TypeMeta, newState.GetName(), newState.GetNamespace(), newState.GetResourceVersion(), time.Now())
+	item := buffer.BufferItem{
+		TypeMeta:               newState.TypeMeta,
+		Name:                   newState.GetName(),
+		Namespace:              newState.GetNamespace(),
+		PendingResourceVersion: newState.GetResourceVersion(),
+		LastProcessed:          time.Now(),
+		Attempts:               0,
+	}
+	buffer.Push(&item)
 }

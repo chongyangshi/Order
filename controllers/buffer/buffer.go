@@ -18,13 +18,18 @@ var (
 	bufferMutex = sync.Mutex{}
 )
 
-// BufferItem uniquely identifies a managed resource based on its cluster attributes.
+// BufferItem uniquely identifies a managed resource based on its cluster
+// attributes.
+// We record last processed time when pushing to the buffer, so that when
+// an item is popped and processed, the calling client can determine whether
+// the last processed time fits under any cooldowns it needs to process.
 type BufferItem struct {
 	TypeMeta               metav1.TypeMeta
 	Name                   string
 	Namespace              string
 	PendingResourceVersion string
 	LastProcessed          time.Time
+	Attempts               int
 }
 
 // HashKey returns a string which identifies a managed resource, we won't fiddle
@@ -35,25 +40,18 @@ func (b BufferItem) HashKey() string {
 }
 
 // Push stores a managed resource in the buffer in a uniquely identified form.
-func Push(tm metav1.TypeMeta, name, namespace, resourceVersion string, lastProcessed time.Time) {
+func Push(item *BufferItem) {
 	bufferMutex.Lock()
 	defer bufferMutex.Unlock()
 
-	// We record last processed time when pushing to the buffer, so that when
-	// an item is popped and processed, the calling client can determine whether
-	// the last processed time fits under any cooldowns it needs to process.
-	item := BufferItem{
-		TypeMeta:               tm,
-		Name:                   name,
-		Namespace:              namespace,
-		PendingResourceVersion: resourceVersion,
-		LastProcessed:          lastProcessed,
+	if item == nil {
+		return
 	}
 
 	// Kubernetes does not guarantee that the resource version numeric values are ordered,
 	// or whether they will be numeric at all. So we overwrite any existing key for the
 	// same pod controller in all cases.
-	buffer[item.HashKey()] = &item
+	buffer[item.HashKey()] = item
 }
 
 // Pop removes a random pod controller from buffer, if one exists. If not all of its depending
@@ -72,6 +70,9 @@ func Pop() *BufferItem {
 	for k, v := range buffer {
 		item := *v
 		delete(buffer, k)
+
+		// Increment the attempts counter before returning.
+		item.Attempts = item.Attempts + 1
 		return &item
 	}
 
