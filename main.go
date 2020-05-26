@@ -12,8 +12,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/icydoge/orderrrr/controllers/configmaps"
-	"github.com/icydoge/orderrrr/controllers/secrets"
+	"github.com/icydoge/orderrrr/controllers"
 )
 
 type stop struct{}
@@ -53,11 +52,9 @@ func main() {
 	stopChan := make(chan struct{})
 	defer close(stopChan)
 
-	secretsController := secrets.NewSecretsController(clientSet, resyncInterval)
-	go secretsController.Run(stopChan)
-
-	configMapsController := configmaps.NewConfigMapsController(clientSet, resyncInterval)
-	go configMapsController.Run(stopChan)
+	// Start controllers
+	controllers.Init(clientSet, stopChan, resyncInterval)
+	log.Println("Started all controllers")
 
 	osSignals := make(chan os.Signal, 1)
 	signal.Notify(osSignals, syscall.SIGINT, syscall.SIGTERM)

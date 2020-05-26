@@ -68,7 +68,7 @@ func (c *ConfigMapsController) add(obj interface{}) {
 		return
 	}
 
-	buffer.PushToBuffer(configMapState.TypeMeta, configMapState.GetName(), configMapState.GetNamespace(), configMapState.GetResourceVersion())
+	buffer.Push(configMapState.TypeMeta, configMapState.GetName(), configMapState.GetNamespace(), configMapState.GetResourceVersion(), time.Now())
 }
 
 func (c *ConfigMapsController) update(old, new interface{}) {
@@ -88,5 +88,5 @@ func (c *ConfigMapsController) update(old, new interface{}) {
 		return
 	}
 
-	buffer.PushToBuffer(newState.TypeMeta, newState.GetName(), newState.GetNamespace(), newState.GetResourceVersion())
+	buffer.Push(newState.TypeMeta, newState.GetName(), newState.GetNamespace(), newState.GetResourceVersion(), time.Now())
 }
