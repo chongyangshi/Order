@@ -1,0 +1,92 @@
+package secrets
+
+import (
+	"log"
+	"time"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	corelisters "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/tools/cache"
+
+	"github.com/icydoge/orderrrr/controllers/buffer"
+)
+
+// SecretsController is a controller monitoring changes to secrets
+type SecretsController struct {
+	factory informers.SharedInformerFactory
+	lister  corelisters.SecretLister
+	synced  cache.InformerSynced
+}
+
+// NewSecretsController initialises a secrets controller
+func NewSecretsController(clientSet kubernetes.Interface, resyncInterval time.Duration) *SecretsController {
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(clientSet, resyncInterval)
+	informer := informerFactory.Core().V1().Secrets()
+
+	controller := &SecretsController{
+		factory: informerFactory,
+	}
+
+	// We don't process delete, as unintentional deletion of a mounted secret coupled
+	// with an immediate restart will make things fall over, which is usually not
+	// desirable.
+	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    controller.add,
+		UpdateFunc: controller.update,
+		DeleteFunc: func(obj interface{}) {},
+	})
+
+	controller.lister = informer.Lister()
+	controller.synced = informer.Informer().HasSynced
+
+	return controller
+}
+
+// Run initialises and starts the controller
+func (c *SecretsController) Run(stopChan chan struct{}) {
+	defer runtime.HandleCrash()
+
+	log.Println("Starting secret controller.")
+	defer log.Println("Shutting down secret controller.")
+
+	c.factory.Start(stopChan)
+
+	if ok := cache.WaitForCacheSync(stopChan, c.synced); !ok {
+		log.Fatalln("Failed to wait for cache synchronization")
+	}
+
+	<-stopChan
+}
+
+func (c *SecretsController) add(obj interface{}) {
+	secretState, ok := obj.(*corev1.Secret)
+	if !ok {
+		log.Printf("Could not process add: unexpected type for Secret: %v", obj)
+		return
+	}
+
+	buffer.PushToBuffer(secretState.TypeMeta, secretState.GetName(), secretState.GetNamespace(), secretState.GetResourceVersion())
+}
+
+func (c *SecretsController) update(old, new interface{}) {
+	oldState, ok := old.(*corev1.Secret)
+	if !ok {
+		log.Printf("Could not process update: unexpected old state type for Secret: %v", new)
+		return
+	}
+	newState, ok := new.(*corev1.Secret)
+	if !ok {
+		log.Printf("Could not process update: unexpected new state type for Secret: %v", new)
+		return
+	}
+
+	if newState.GetResourceVersion() == oldState.GetResourceVersion() {
+		// No change in secret
+		return
+	}
+
+	buffer.PushToBuffer(newState.TypeMeta, newState.GetName(), newState.GetNamespace(), newState.GetResourceVersion())
+}
