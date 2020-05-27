@@ -40,7 +40,7 @@ func LoadConfig(configPath string) error {
 		return fmt.Errorf("Error reading config from %s: %v", configPath, err)
 	}
 
-	Config = OrderrrrConfig{}
+	Config = proto.OrderrrrConfig{}
 	err = yaml.Unmarshal(configBytes, &Config)
 	if err == nil {
 		return fmt.Errorf("Got parsing config from %s: %v", configPath, err)
