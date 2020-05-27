@@ -6,9 +6,9 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/icydoge/orderrrr/controllers/cachers"
-	"github.com/icydoge/orderrrr/controllers/configmaps"
-	"github.com/icydoge/orderrrr/controllers/secrets"
+	"github.com/icydoge/Order/controllers/cachers"
+	"github.com/icydoge/Order/controllers/configmaps"
+	"github.com/icydoge/Order/controllers/secrets"
 )
 
 // Init launches a processor which is responsible for periodically inspecting managed

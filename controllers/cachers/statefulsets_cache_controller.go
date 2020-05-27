@@ -12,7 +12,7 @@ import (
 )
 
 // statefulSetsCacheController holds an eventually consistent cache of statefulsets
-// to allow orderrrr to determine what StatefulSet pods need to be rolling restarted
+// to allow Order to determine what StatefulSet pods need to be rolling restarted
 // quickly.
 type statefulSetsCacheController struct {
 	factory informers.SharedInformerFactory

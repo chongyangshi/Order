@@ -12,7 +12,7 @@ import (
 )
 
 // deploymentsCacheController holds an eventually consistent cache of deployments
-// to allow orderrrr to determine what DaemonSet pods need to be rolling restarted
+// to allow Order to determine what DaemonSet pods need to be rolling restarted
 // quickly.
 type deploymentsCacheController struct {
 	factory informers.SharedInformerFactory

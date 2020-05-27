@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/icydoge/orderrrr/controllers"
+	"github.com/icydoge/Order/controllers"
 )
 
 type stop struct{}

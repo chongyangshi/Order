@@ -12,7 +12,7 @@ import (
 )
 
 // jobsCacheController holds an eventually consistent cache of batch jobs
-// to allow orderrrr to determine what Job pods need to be rolling restarted
+// to allow Order to determine what Job pods need to be rolling restarted
 // quickly.
 type jobsCacheController struct {
 	factory informers.SharedInformerFactory

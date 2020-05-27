@@ -8,7 +8,7 @@ import (
 )
 
 // Init launches a series of pod controllers which may run pods mounting resources managed by
-// orderrrr. They provide an eventually consistent cache we use to determine whether a rolling
+// Order. They provide an eventually consistent cache we use to determine whether a rolling
 // restart is required in response to changes to a managed resource.
 func Init(clientSet kubernetes.Interface, stopChan chan struct{}, resyncInterval time.Duration) {
 	dsController := newDaemonSetsController(clientSet, resyncInterval)

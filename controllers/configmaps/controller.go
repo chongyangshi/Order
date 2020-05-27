@@ -12,7 +12,7 @@ import (
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/icydoge/orderrrr/controllers/buffer"
+	"github.com/icydoge/Order/controllers/buffer"
 )
 
 // ConfigMapsController is a controller monitoring changes to ConfigMaps

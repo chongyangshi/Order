@@ -9,7 +9,7 @@ import (
 )
 
 // This buffer holds a list of recently updated resources whose depending pod controllers
-// are managed by orderrrr, but some of which cannot yet be restarted as a cooldown since
+// are managed by Order, but some of which cannot yet be restarted as a cooldown since
 // the last restarted time is not yet met. So that we can apply precise deduplication for
 // bursts of state changes on the same object, we are not using a pre-rolled one like
 // https://github.com/kubernetes/client-go/blob/master/util/workqueue/queue.go

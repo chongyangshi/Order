@@ -12,15 +12,15 @@ const (
 )
 
 const (
-	// LabelPrefix is the shared prefix managed by orderrrr
-	LabelPrefix = "orderrrr.kube-system.com"
+	// LabelPrefix is the shared prefix managed by Order
+	LabelPrefix = "order.kube-system.com"
 
 	// LabelLastRollingRestart is an RFC3339 timestamp recording when
-	// orderrrr last performed a rolling restart on a pod controller
+	// Order last performed a rolling restart on a pod controller
 	LabelLastRollingRestart = "last-rolling-restart"
 
 	// LabelManagedResourcesHash is a SHA256 hash over all resources
-	// managed by orderrrr on the target pod controller in order, in
+	// managed by Order on the target pod controller in order, in
 	// case the controller is falling very far behind due to prior
 	// errors, this helps us determine whether rolling restart is
 	// required on a pod controller
@@ -35,24 +35,24 @@ const (
 	PodControllerTypeStatefulSets = "StatefulSets"
 )
 
-// OrderrrrConfig is a structue of system-wide and managed resource-specific
-// configurations for orderrrr.
-type OrderrrrConfig struct {
-	// Version represents the config version of orderrrr
+// OrderConfig is a structue of system-wide and managed resource-specific
+// configurations for Order.
+type OrderConfig struct {
+	// Version represents the config version of Order
 	Version float64 `yaml:"version"`
 
-	// Namespaces represents rules under which orderrrr should eithr action on
+	// Namespaces represents rules under which Order should eithr action on
 	// or ignore a pod controller, depending on what namespace it lives in.
 	Namespaces struct {
-		// If Whitelist is set, orderrrr will only perform rolling restarts on pod
+		// If Whitelist is set, Order will only perform rolling restarts on pod
 		// controllers in the specific namespaces listed. This includes if you
-		// want to allow orderrrr to perform rolling restarts in kube-system
+		// want to allow Order to perform rolling restarts in kube-system
 		// namespace, which is not recommended.
 		Whitelist []string `yaml:"whitelist"`
 
-		// If Blacklist is set, orderrrr will only perform rolling restarts on pod
+		// If Blacklist is set, Order will only perform rolling restarts on pod
 		// controllers in the specific namespaces listed. kube-system will be
-		// blacklisted by default. If you want to allow orderrrr to perform rolling
+		// blacklisted by default. If you want to allow Order to perform rolling
 		// restarts in kube-system namespace, which is not recommended.
 		Blacklist []string `yaml:"blacklist"`
 	} `yaml:"namespace"`
@@ -64,20 +64,20 @@ type OrderrrrConfig struct {
 	ControllerResyncDuration string `yaml:"controller_resync_duration"`
 
 	// DefaultRestartCooldown is a Go duration which defines at most how frequently can
-	// orderrrr restart a pod controller, in order to prevent thrashing. Only positive
+	// Order restart a pod controller, in order to prevent thrashing. Only positive
 	// durations are acceptable. For small clusters, 2m+ is recommended. For large clusters,
 	// consider 5m+. This can be overridden by restart_cooldown fields in individual
 	// managed resource configurations.
 	DefaultRestartCooldown string `yaml:"default_restart_cooldown"`
 
-	// ManagedResources are Secrets and ConfigMaps, which when updated we want orderrrr to
+	// ManagedResources are Secrets and ConfigMaps, which when updated we want Order to
 	// perform automatic rolling restarts, subject to namespace and restart cooldown
 	// validation.
 	ManagedResources []*ManagedResource `yaml:"managed_resources"`
 }
 
 // ManagedResource represents a mountable or referenceable resource whose changes are
-// monitored by orderrrr.
+// monitored by Order.
 type ManagedResource struct {
 	// Type is a Kubernetes resource type for the managed resource, currently either Secrets
 	// or ConfigMaps.
@@ -124,7 +124,7 @@ type ManagedResource struct {
 	} `yaml:"avoid_controllers"`
 
 	// AvoidAllControllersUnlessWhitelisted can be set instead of AvoidControllers to make
-	// orderrrr avoid performing actions on all controllers unless it is explicitly whitelisted
+	// Order avoid performing actions on all controllers unless it is explicitly whitelisted
 	// as AdditionalControllers.
 	AvoidAllControllersUnlessWhitelisted bool `yaml:"avoid_all_controllers_unless_whitelisted"`
 

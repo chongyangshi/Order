@@ -11,9 +11,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// orderrrr.kube-system.com/managed-resources-hash
+// order.kube-system.com/managed-resources-hash
 
-// managedResource represent a resources which can be managed by orderrrr, the underlying
+// managedResource represent a resources which can be managed by Order, the underlying
 // supported types may be subject to future extension. Currently Secret and ConfigMap.
 type managedResource struct {
 	secret    *corev1.Secret
@@ -61,7 +61,7 @@ func (rs *managedResources) getHash() (string, error) {
 	return hex.Dump(hasher.Sum(nil)), nil
 }
 
-// orderrrr.kube-system.com/last-rolling-restart
+// order.kube-system.com/last-rolling-restart
 
 // parseLastRollingRestartTimeBestEffort returns current time if we fail to parse,
 // which is a failing-safe behaviour to ensure we don't repeatedly restart a pod
