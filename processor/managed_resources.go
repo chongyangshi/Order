@@ -13,8 +13,8 @@ import (
 // managedResource represent a resources which can be managed by orderrrr, the underlying
 // supported types may be subject to future extension. Currently Secret and ConfigMap.
 type managedResource struct {
-	Secret    *corev1.Secret
-	ConfigMap *corev1.ConfigMap
+	secret    *corev1.Secret
+	configMap *corev1.ConfigMap
 }
 
 type managedResources struct {
@@ -27,10 +27,10 @@ func (rs managedResources) getHash() (string, error) {
 	var resources []string
 	for _, r := range rs.resources {
 		switch {
-		case r.Secret != nil:
-			resources = append(resources, fmt.Sprintf("Secret:%v:%s", r.Secret.GetUID(), r.Secret.ResourceVersion))
-		case r.ConfigMap != nil:
-			resources = append(resources, fmt.Sprintf("ConfigMap:%v:%s", r.ConfigMap.GetUID(), r.ConfigMap.ResourceVersion))
+		case r.secret != nil:
+			resources = append(resources, fmt.Sprintf("Secret:%v:%s", r.secret.GetUID(), r.secret.ResourceVersion))
+		case r.configMap != nil:
+			resources = append(resources, fmt.Sprintf("ConfigMap:%v:%s", r.configMap.GetUID(), r.configMap.ResourceVersion))
 		}
 	}
 
