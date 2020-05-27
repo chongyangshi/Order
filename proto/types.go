@@ -1,5 +1,16 @@
 package proto
 
+import (
+	"time"
+
+	"github.com/prometheus/common/log"
+)
+
+const (
+	controllerResyncSafetyLowerBound = time.Second * 15
+	restartColldownSafetyLowerBound  = time.Second * 30
+)
+
 const (
 	// LabelPrefix is the shared prefix managed by orderrrr
 	LabelPrefix = "orderrrr.kube-system.com"
@@ -93,7 +104,7 @@ type ManagedResource struct {
 		Type string `yaml:"type"`
 	} `yaml:"additional_controllers"`
 
-	// AvoidingControllers specify pod controllers which should not be restarted when
+	// AvoidControllers specify pod controllers which should not be restarted when
 	// this managed resource updates, even if it is formally linked to the managed resource
 	// via its pod template.
 	AvoidControllers []struct {
@@ -108,9 +119,63 @@ type ManagedResource struct {
 		Type string `yaml:"type"`
 	} `yaml:"avoid_controllers"`
 
+	// AvoidAllControllersUnlessWhitelisted can be set instead of AvoidControllers to make
+	// orderrrr avoid performing actions on all controllers unless it is explicitly whitelisted
+	// as AdditionalControllers.
+	AvoidAllControllersUnlessWhitelisted bool `yaml:"avoid_all_controllers_unless_whitelisted"`
+
 	// RestartCooldown is a Go duration which defines how frequently a pod controller can
 	// be restarted for this resource. This overrides global defaults.
 	RestartCooldown string `yaml:"restart_cooldown"`
 }
 
-// @TODO: Validation and conversion to controllers/managed_resources.go
+func ValidateManagedResourceType(t string) bool {
+	switch t {
+	case ManagedResourceTypeConfigMaps, ManagedResourceTypeSecrets:
+		return true
+	}
+
+	return false
+}
+
+func ValidatePodControllerType(t string) bool {
+	switch t {
+	case PodControllerTypeDaemonSets,
+		PodControllerTypeDeployments,
+		PodControllerTypeJobs,
+		PodControllerTypeStatefulSets:
+		return true
+	}
+
+	return false
+}
+
+func GetControllerResyncPeriod(d string) time.Duration {
+	t, err := time.ParseDuration(d)
+	if err != nil {
+		log.Errorf("Error parsing controller resync period %s, using default %v", d, controllerResyncSafetyLowerBound)
+		return controllerResyncSafetyLowerBound
+	}
+
+	if t < controllerResyncSafetyLowerBound {
+		log.Errorf("Specified controller resync period %s below safety threshold, using default %v", d, controllerResyncSafetyLowerBound)
+		return controllerResyncSafetyLowerBound
+	}
+
+	return t
+}
+
+func GetRestartCooldownPeriod(d string) time.Duration {
+	t, err := time.ParseDuration(d)
+	if err != nil {
+		log.Errorf("Error parsing restart cooldown period %s, using default %v", d, restartColldownSafetyLowerBound)
+		return restartColldownSafetyLowerBound
+	}
+
+	if t < controllerResyncSafetyLowerBound {
+		log.Errorf("Specified restart cooldown period %s below safety threshold, using default %v", d, restartColldownSafetyLowerBound)
+		return restartColldownSafetyLowerBound
+	}
+
+	return t
+}

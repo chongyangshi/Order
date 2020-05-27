@@ -1,4 +1,4 @@
-package controllers
+package processor
 
 import (
 	"crypto/sha256"
