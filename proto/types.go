@@ -102,6 +102,10 @@ type ManagedResource struct {
 		// Type of the nominated pod controller, one of DaemonSets, Deployments, Jobs, or
 		// StatefulSets.
 		Type string `yaml:"type"`
+
+		// RestartCooldown is a Go duration which defines how frequently a pod controller
+		// can be restarted for this resource. This overrides global and resource defaults.
+		RestartCooldown string `yaml:"restart_cooldown"`
 	} `yaml:"additional_controllers"`
 
 	// AvoidControllers specify pod controllers which should not be restarted when
