@@ -19,7 +19,7 @@ import (
 type ConfigMapsController struct {
 	factory informers.SharedInformerFactory
 	lister  corelisters.ConfigMapLister
-	synced  cache.InformerSynced
+	Synced  cache.InformerSynced
 }
 
 // NewConfigMapsController initialises a ConfigMaps controller
@@ -41,7 +41,7 @@ func NewConfigMapsController(clientSet kubernetes.Interface, resyncInterval time
 	})
 
 	controller.lister = informer.Lister()
-	controller.synced = informer.Informer().HasSynced
+	controller.Synced = informer.Informer().HasSynced
 
 	return controller
 }
@@ -55,7 +55,7 @@ func (c *ConfigMapsController) Run(stopChan chan struct{}) {
 
 	c.factory.Start(stopChan)
 
-	if ok := cache.WaitForCacheSync(stopChan, c.synced); !ok {
+	if ok := cache.WaitForCacheSync(stopChan, c.Synced); !ok {
 		log.Fatalln("Failed to wait for cache synchronization")
 	}
 

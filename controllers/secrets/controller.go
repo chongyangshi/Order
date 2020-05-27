@@ -19,7 +19,7 @@ import (
 type SecretsController struct {
 	factory informers.SharedInformerFactory
 	lister  corelisters.SecretLister
-	synced  cache.InformerSynced
+	Synced  cache.InformerSynced
 }
 
 // NewSecretsController initialises a secrets controller
@@ -41,7 +41,7 @@ func NewSecretsController(clientSet kubernetes.Interface, resyncInterval time.Du
 	})
 
 	controller.lister = informer.Lister()
-	controller.synced = informer.Informer().HasSynced
+	controller.Synced = informer.Informer().HasSynced
 
 	return controller
 }
@@ -55,7 +55,7 @@ func (c *SecretsController) Run(stopChan chan struct{}) {
 
 	c.factory.Start(stopChan)
 
-	if ok := cache.WaitForCacheSync(stopChan, c.synced); !ok {
+	if ok := cache.WaitForCacheSync(stopChan, c.Synced); !ok {
 		log.Fatalln("Failed to wait for cache synchronization")
 	}
 

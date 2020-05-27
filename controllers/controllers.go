@@ -28,5 +28,26 @@ func Init(clientSet kubernetes.Interface, stopChan chan struct{}, resyncInterval
 	configMapsController := configmaps.NewConfigMapsController(clientSet, resyncInterval)
 	go configMapsController.Run(stopChan)
 
-	log.Println("Started all managed resource controllers")
+	log.Println("Started all managed resource controllers, waiting for them to sync")
+
+	// Block until all controllers have synced
+	for {
+		allSynced := true
+		switch {
+		case !secretsController.Synced():
+			log.Println("Secrets controller not yet synced")
+			allSynced = false
+		case !configMapsController.Synced():
+			log.Println("ConfigMaps controller not yet synced")
+			allSynced = false
+		}
+
+		if allSynced {
+			log.Println("All managed resources controllers synced and ready")
+			break
+		}
+
+		log.Println("Not all managed resources controllers synced, waiting for a short while before re-checking")
+		time.Sleep(time.Millisecond * 2000)
+	}
 }
