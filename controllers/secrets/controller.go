@@ -5,6 +5,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -56,6 +57,25 @@ func (c *SecretsController) Run(stopChan chan struct{}) {
 
 	if ok := cache.WaitForCacheSync(stopChan, c.synced); !ok {
 		log.Fatalln("Failed to wait for cache synchronization")
+	}
+
+	// Push all secrets into buffer to be processed if pod controllers
+	// requiring them are not up-to-date.
+	secrets, err := c.lister.List(labels.Everything())
+	if err != nil {
+		log.Fatalln("Failed to load secrets initially")
+	}
+
+	for _, secret := range secrets {
+		item := buffer.BufferItem{
+			TypeMeta:               secret.TypeMeta,
+			Name:                   secret.GetName(),
+			Namespace:              secret.GetNamespace(),
+			PendingResourceVersion: secret.GetResourceVersion(),
+			LastProcessed:          time.Now(),
+			Attempts:               0,
+		}
+		buffer.Push(&item)
 	}
 
 	<-stopChan
