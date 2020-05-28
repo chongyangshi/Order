@@ -43,6 +43,11 @@ func LoadConfig(configPath string) error {
 	Config = proto.OrderConfig{}
 	err = yaml.Unmarshal(configBytes, &Config)
 	if err == nil {
+		return fmt.Errorf("Got unmarshaling config from %s: %v", configPath, err)
+	}
+
+	err = Config.Parse()
+	if err != nil {
 		return fmt.Errorf("Got parsing config from %s: %v", configPath, err)
 	}
 
