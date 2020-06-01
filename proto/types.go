@@ -22,10 +22,10 @@ const (
 	ManagedResourceTypeSecrets    = "Secrets"
 	ManagedResourceTypeConfigMaps = "ConfigMaps"
 
-	PodControllerTypeDaemonSets   = "DaemonSets"
-	PodControllerTypeDeployments  = "Deployments"
-	PodControllerTypeJobs         = "Jobs"
-	PodControllerTypeStatefulSets = "StatefulSets"
+	PodControllerTypeDaemonSets   = "DaemonSet"
+	PodControllerTypeDeployments  = "Deployment"
+	PodControllerTypeJobs         = "Job"
+	PodControllerTypeStatefulSets = "StatefulSet"
 )
 
 // OrderConfig is a structue of system-wide and managed resource-specific
@@ -34,8 +34,10 @@ type OrderConfig struct {
 	// Version represents the config version of Order
 	Version float64 `yaml:"version"`
 
-	// Namespaces represents rules under which Order should eithr action on
+	// Namespaces represents rules under which Order should either action on
 	// or ignore a pod controller, depending on what namespace it lives in.
+	// If set, this can preclude pod controllers even if they are secified as
+	// additional_controllers for a managed resource.
 	Namespaces struct {
 		// If Whitelist is set, Order will only perform rolling restarts on pod
 		// controllers in the specific namespaces listed. This includes if you
@@ -60,13 +62,12 @@ type OrderConfig struct {
 	ControllerResyncDuration    string `yaml:"controller_resync_duration"`
 	XXXControllerResyncDuration time.Duration
 
-	// DefaultRestartCooldown is a Go duration which defines at most how frequently can
-	// Order restart a pod controller, in order to prevent thrashing. Only positive
-	// durations are acceptable. For small clusters, 2m+ is recommended. For large clusters,
-	// consider 5m+. This can be overridden by restart_cooldown fields in individual
-	// managed resource configurations. This value cannot be below 30s.
-	DefaultRestartCooldown          string `yaml:"default_restart_cooldown"`
-	XXXParsedDefaultRestartCooldown time.Duration
+	// RestartCooldown is a Go duration which defines at most how frequently can Order
+	// restart a pod controller, in order to prevent thrashing. Only positive durations
+	// are acceptable. For small clusters, 2m+ is recommended. For large clusters,
+	// consider 5m+. This value cannot be below 30s.
+	RestartCooldown          string `yaml:"default_restart_cooldown"`
+	XXXParsedRestartCooldown time.Duration
 
 	// PodControllerStagger is a Go duration which prevents Order from initiating subsequent
 	// restarts too quickly and hence causing problems in the cluster, by setting a minimum
@@ -109,16 +110,11 @@ type ManagedResource struct {
 		// Type of the nominated pod controller, one of DaemonSets, Deployments, Jobs, or
 		// StatefulSets.
 		Type string `yaml:"type"`
-
-		// RestartCooldown is a Go duration which defines how frequently a pod controller
-		// can be restarted for this resource. This overrides global and resource defaults.
-		RestartCooldown          string `yaml:"restart_cooldown"`
-		XXXParsedRestartCooldown time.Duration
 	} `yaml:"additional_controllers"`
 
 	// AvoidControllers specify pod controllers which should not be restarted when
 	// this managed resource updates, even if it is formally linked to the managed resource
-	// via its pod template.
+	// via its pod template. This also overrides any matching entry in additional_controllers.
 	AvoidControllers []struct {
 		// Name of the nominated pod controller
 		Name string `yaml:"name"`
@@ -135,11 +131,6 @@ type ManagedResource struct {
 	// Order avoid performing actions on all controllers unless it is explicitly whitelisted
 	// as AdditionalControllers.
 	AvoidAllControllersUnlessWhitelisted bool `yaml:"avoid_all_controllers_unless_whitelisted"`
-
-	// RestartCooldown is a Go duration which defines how frequently a pod controller can
-	// be restarted for this resource. This overrides global defaults.
-	RestartCooldown          string `yaml:"restart_cooldown"`
-	XXXParsedRestartCooldown time.Duration
 }
 
 // Parse populates parsed fields of the config which are derived from YAML values.
@@ -176,11 +167,11 @@ func (c *OrderConfig) Parse() error {
 	c.XXXControllerResyncDuration = *controllerResyncDuration
 
 	// Parse default cooldown duration
-	defaultRestartCooldown, err := getRestartCooldownPeriod(c.DefaultRestartCooldown)
+	restartCooldown, err := getRestartCooldownPeriod(c.RestartCooldown)
 	if err != nil {
 		return err
 	}
-	c.XXXParsedDefaultRestartCooldown = *defaultRestartCooldown
+	c.XXXParsedRestartCooldown = *restartCooldown
 
 	// Parse pod controller stagger duration
 	podControllerStagger, err := getPodControllerStaggerPeriod(c.PodControllerStagger)
@@ -188,27 +179,6 @@ func (c *OrderConfig) Parse() error {
 		return err
 	}
 	c.XXXParsedPodControllerStagger = *podControllerStagger
-
-	// Parse additional controllers specified for managed resources
-	for _, resource := range c.ManagedResources {
-		if resource == nil {
-			continue
-		}
-
-		// Parse restart cooldowns with global default
-		for _, controller := range resource.AdditionalControllers {
-			if controller.RestartCooldown == "" {
-				controller.XXXParsedRestartCooldown = *defaultRestartCooldown
-			}
-
-			controllerRestartCooldown, err := getRestartCooldownPeriod(controller.RestartCooldown)
-			if err != nil {
-				return err
-			}
-
-			controller.XXXParsedRestartCooldown = *controllerRestartCooldown
-		}
-	}
 
 	return nil
 }

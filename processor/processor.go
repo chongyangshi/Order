@@ -1,5 +1,11 @@
 package processor
 
+import (
+	"context"
+
+	"github.com/icydoge/Order/controllers/cachers"
+)
+
 // @TODO: Control loop
 // - Pop from buffer
 // - Check whether resource is managed
@@ -13,3 +19,34 @@ package processor
 // - If does not match, check if minimum cooldown from last restart qualifies
 // - If minimum cooldown does not qualifies, push back into buffer and skip
 // - If minimum cooldown qualifies, perform rolling restart and continue.
+
+// In a control loop, we validate all pod controllers against the versions of managed
+// resources they run. It is unnecessary to use locking and keep caches in a consistent
+// state while we process them, as it will simply be covered in the next loop under
+// an eventually consistent model.
+func controlLoop(ctx context.Context) error {
+	// Retrieve DaemonSets currently in cache
+	daemonSets, err := cachers.GetDaemonSets()
+	if err != nil {
+		return err
+	}
+
+	// Retrieve Deployments currently in cache
+	deployments, err := cachers.GetDeployments()
+	if err != nil {
+		return err
+	}
+
+	// Retrieve jobs currently in cache
+	jobs, err := cachers.GetJobs()
+	if err != nil {
+		return err
+	}
+
+	// Retrieve StatefulSets currently in cache
+	statefulSets, err := cachers.GetStatefulSets()
+	if err != nil {
+		return err
+	}
+
+}
