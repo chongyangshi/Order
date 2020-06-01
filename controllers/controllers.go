@@ -1,14 +1,22 @@
 package controllers
 
 import (
-	"log"
+	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/icydoge/Order/controllers/cachers"
 	"github.com/icydoge/Order/controllers/configmaps"
 	"github.com/icydoge/Order/controllers/secrets"
+	"github.com/icydoge/Order/logging"
+)
+
+var (
+	configMapsController *configmaps.ConfigMapsController
+	secretsController    *secrets.SecretsController
 )
 
 // Init launches a processor which is responsible for periodically inspecting managed
@@ -19,35 +27,51 @@ import (
 func Init(clientSet kubernetes.Interface, stopChan chan struct{}, resyncInterval time.Duration) {
 	// Start cachers first to build a list of pod controllers
 	cachers.Init(clientSet, stopChan, resyncInterval)
-	log.Println("Started all cache controllers")
+	logging.Log("Started all cache controllers")
 
 	// Now start controllers for managed resources.
-	secretsController := secrets.NewSecretsController(clientSet, resyncInterval)
+	secretsController = secrets.NewSecretsController(clientSet, resyncInterval)
 	go secretsController.Run(stopChan)
 
-	configMapsController := configmaps.NewConfigMapsController(clientSet, resyncInterval)
+	configMapsController = configmaps.NewConfigMapsController(clientSet, resyncInterval)
 	go configMapsController.Run(stopChan)
 
-	log.Println("Started all managed resource controllers, waiting for them to sync")
+	logging.Log("Started all managed resource controllers, waiting for them to sync")
 
 	// Block until all controllers have synced
 	for {
 		allSynced := true
 		switch {
 		case !secretsController.Synced():
-			log.Println("Secrets controller not yet synced")
+			logging.Debug("Secrets controller not yet synced")
 			allSynced = false
 		case !configMapsController.Synced():
-			log.Println("ConfigMaps controller not yet synced")
+			logging.Debug("ConfigMaps controller not yet synced")
 			allSynced = false
 		}
 
 		if allSynced {
-			log.Println("All managed resources controllers synced and ready")
+			logging.Log("All managed resources controllers synced and ready")
 			break
 		}
 
-		log.Println("Not all managed resources controllers synced, waiting for a short while before re-checking")
+		logging.Log("Not all managed resources controllers synced, waiting for a short while before re-checking")
 		time.Sleep(time.Millisecond * 2000)
 	}
+}
+
+// GetSecrets returns all Secrets currently in controller cache, whether managed or not
+func GetSecrets() ([]*corev1.Secret, error) {
+	if secretsController == nil {
+		return nil, fmt.Errorf("Secret controller is not yet initialised")
+	}
+	return secretsController.Lister.List(labels.Everything())
+}
+
+// GetConfigMaps returns all ConfigMaps currently in controller cache
+func GetConfigMaps() ([]*corev1.ConfigMap, error) {
+	if configMapsController == nil {
+		return nil, fmt.Errorf("ConfigMap controller is not yet initialised")
+	}
+	return configMapsController.Lister.List(labels.Everything())
 }

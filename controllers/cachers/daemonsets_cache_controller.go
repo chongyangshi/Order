@@ -1,7 +1,6 @@
 package cachers
 
 import (
-	"log"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -9,6 +8,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/icydoge/Order/logging"
 )
 
 // daemonSetsCacheController holds an eventually consistent cache of daemonsets
@@ -39,13 +40,13 @@ func newDaemonSetsController(clientSet kubernetes.Interface, resyncInterval time
 func (c *daemonSetsCacheController) run(stopChan chan struct{}) {
 	defer runtime.HandleCrash()
 
-	log.Println("Starting daemonset cache controller.")
-	defer log.Println("Shutting down daemonset cache controller.")
+	logging.Log("Starting daemonset cache controller.")
+	defer logging.Log("Shutting down daemonset cache controller.")
 
 	c.factory.Start(stopChan)
 
 	if ok := cache.WaitForCacheSync(stopChan, c.synced); !ok {
-		log.Fatalln("Failed to wait for cache synchronization")
+		logging.Fatal("Failed to wait for cache synchronization")
 	}
 
 	<-stopChan

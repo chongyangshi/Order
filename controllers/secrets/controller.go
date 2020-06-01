@@ -1,7 +1,6 @@
 package secrets
 
 import (
-	"log"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -9,12 +8,14 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/icydoge/Order/logging"
 )
 
 // SecretsController is a controller monitoring changes to secrets
 type SecretsController struct {
 	factory informers.SharedInformerFactory
-	lister  corelisters.SecretLister
+	Lister  corelisters.SecretLister
 	Synced  cache.InformerSynced
 }
 
@@ -35,7 +36,7 @@ func NewSecretsController(clientSet kubernetes.Interface, resyncInterval time.Du
 		DeleteFunc: func(obj interface{}) {},
 	})
 
-	controller.lister = informer.Lister()
+	controller.Lister = informer.Lister()
 	controller.Synced = informer.Informer().HasSynced
 
 	return controller
@@ -45,13 +46,13 @@ func NewSecretsController(clientSet kubernetes.Interface, resyncInterval time.Du
 func (c *SecretsController) Run(stopChan chan struct{}) {
 	defer runtime.HandleCrash()
 
-	log.Println("Starting secret controller.")
-	defer log.Println("Shutting down secret controller.")
+	logging.Log("Starting secret controller.")
+	defer logging.Log("Shutting down secret controller.")
 
 	c.factory.Start(stopChan)
 
 	if ok := cache.WaitForCacheSync(stopChan, c.Synced); !ok {
-		log.Fatalln("Failed to wait for cache synchronization")
+		logging.Fatal("Failed to wait for cache synchronization")
 	}
 
 	<-stopChan

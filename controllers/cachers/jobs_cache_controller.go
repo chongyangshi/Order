@@ -1,7 +1,6 @@
 package cachers
 
 import (
-	"log"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -9,6 +8,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	batchlisters "k8s.io/client-go/listers/batch/v1"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/icydoge/Order/logging"
 )
 
 // jobsCacheController holds an eventually consistent cache of batch jobs
@@ -39,13 +40,13 @@ func newJobsController(clientSet kubernetes.Interface, resyncInterval time.Durat
 func (c *jobsCacheController) run(stopChan chan struct{}) {
 	defer runtime.HandleCrash()
 
-	log.Println("Starting job cache controller.")
-	defer log.Println("Shutting down job cache controller.")
+	logging.Log("Starting job cache controller.")
+	defer logging.Log("Shutting down job cache controller.")
 
 	c.factory.Start(stopChan)
 
 	if ok := cache.WaitForCacheSync(stopChan, c.synced); !ok {
-		log.Fatalln("Failed to wait for cache synchronization")
+		logging.Fatal("Failed to wait for cache synchronization")
 	}
 
 	<-stopChan

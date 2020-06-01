@@ -1,7 +1,6 @@
 package configmaps
 
 import (
-	"log"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -9,12 +8,14 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/icydoge/Order/logging"
 )
 
 // ConfigMapsController is a controller monitoring changes to ConfigMaps
 type ConfigMapsController struct {
 	factory informers.SharedInformerFactory
-	lister  corelisters.ConfigMapLister
+	Lister  corelisters.ConfigMapLister
 	Synced  cache.InformerSynced
 }
 
@@ -35,7 +36,7 @@ func NewConfigMapsController(clientSet kubernetes.Interface, resyncInterval time
 		DeleteFunc: func(obj interface{}) {},
 	})
 
-	controller.lister = informer.Lister()
+	controller.Lister = informer.Lister()
 	controller.Synced = informer.Informer().HasSynced
 
 	return controller
@@ -45,13 +46,13 @@ func NewConfigMapsController(clientSet kubernetes.Interface, resyncInterval time
 func (c *ConfigMapsController) Run(stopChan chan struct{}) {
 	defer runtime.HandleCrash()
 
-	log.Println("Starting configmap controller.")
-	defer log.Println("Shutting down configmap controller.")
+	logging.Log("Starting configmap controller.")
+	defer logging.Log("Shutting down configmap controller.")
 
 	c.factory.Start(stopChan)
 
 	if ok := cache.WaitForCacheSync(stopChan, c.Synced); !ok {
-		log.Fatalln("Failed to wait for cache synchronization")
+		logging.Fatal("Failed to wait for cache synchronization")
 	}
 
 	<-stopChan

@@ -78,6 +78,9 @@ type OrderConfig struct {
 	// perform automatic rolling restarts, subject to namespace and restart cooldown
 	// validation.
 	ManagedResources []*ManagedResource `yaml:"managed_resources"`
+
+	// DebugOutput controls whether we print debug messages to stdout at debug level
+	DebugOutput bool `yaml:"debug_output"`
 }
 
 // ManagedResource represents a mountable or referenceable resource whose changes are

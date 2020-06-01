@@ -30,7 +30,7 @@ func IsVersionCompatible(version float64) bool {
 // Config is a global state storing the runtime config, which is read only.
 // However, Order can monitor and restart itself if its config changes in
 // the cluster.
-var Config proto.OrderConfig
+var Config *proto.OrderConfig
 
 // LoadConfig loads the runtime configurations, it should be called before
 // controllers are started.
@@ -40,7 +40,7 @@ func LoadConfig(configPath string) error {
 		return fmt.Errorf("Error reading config from %s: %v", configPath, err)
 	}
 
-	Config = proto.OrderConfig{}
+	Config = &proto.OrderConfig{}
 	err = yaml.Unmarshal(configBytes, &Config)
 	if err == nil {
 		return fmt.Errorf("Got unmarshaling config from %s: %v", configPath, err)
