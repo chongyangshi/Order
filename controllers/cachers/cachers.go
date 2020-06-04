@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/icydoge/Order/config"
 	"github.com/icydoge/Order/logging"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -67,29 +68,121 @@ func GetDaemonSets() ([]*appsv1.DaemonSet, error) {
 	if dsController == nil {
 		return nil, fmt.Errorf("DaemonSet controller is not yet initialised")
 	}
-	return dsController.lister.List(labels.Everything())
+
+	dsControllers, err := dsController.lister.List(labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
+	var results []*appsv1.DaemonSet
+	for _, ds := range dsControllers {
+		if ds == nil {
+			// Should never happen
+			continue
+		}
+
+		if inConfigNamespaces(ds.Namespace) {
+			results = append(results, ds)
+		}
+	}
+
+	return results, nil
 }
 
 // GetDeployments returns all Deployments currently in controller cache
 func GetDeployments() ([]*appsv1.Deployment, error) {
-	if dsController == nil {
+	if deployController == nil {
 		return nil, fmt.Errorf("Deployment controller is not yet initialised")
 	}
-	return deployController.lister.List(labels.Everything())
+
+	deployControllers, err := deployController.lister.List(labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
+	var results []*appsv1.Deployment
+	for _, deploy := range deployControllers {
+		if deploy == nil {
+			// Should never happen
+			continue
+		}
+
+		if inConfigNamespaces(deploy.Namespace) {
+			results = append(results, deploy)
+		}
+	}
+
+	return results, nil
 }
 
 // GetJobs returns all Jobs currently in controller cache
 func GetJobs() ([]*batchv1.Job, error) {
-	if dsController == nil {
+	if jobsController == nil {
 		return nil, fmt.Errorf("Jobs controller is not yet initialised")
 	}
-	return jobsController.lister.List(labels.Everything())
+
+	jobsControllers, err := jobsController.lister.List(labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
+	var results []*batchv1.Job
+	for _, job := range jobsControllers {
+		if job == nil {
+			// Should never happen
+			continue
+		}
+
+		if inConfigNamespaces(job.Namespace) {
+			results = append(results, job)
+		}
+	}
+
+	return results, nil
 }
 
 // GetStatefulSets returns all StatefulSets currently in controller cache
 func GetStatefulSets() ([]*appsv1.StatefulSet, error) {
-	if dsController == nil {
+	if stsController == nil {
 		return nil, fmt.Errorf("StatefulSets controller is not yet initialised")
 	}
-	return stsController.lister.List(labels.Everything())
+
+	stsControllers, err := stsController.lister.List(labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
+	var results []*appsv1.StatefulSet
+	for _, sts := range stsControllers {
+		if sts == nil {
+			// Should never happen
+			continue
+		}
+
+		if inConfigNamespaces(sts.Namespace) {
+			results = append(results, sts)
+		}
+	}
+
+	return results, nil
+}
+
+func inConfigNamespaces(namespace string) bool {
+	if config.Config == nil {
+		logging.Fatal("Config namespaces unexpectedly accessed before parsing when searching for %s", namespace)
+	}
+
+	// If no namespace specified in config, all namespaces are accepted except kube-system
+	if len(config.Config.Namespaces) == 0 && namespace != "kube-system" {
+		return true
+	}
+
+	// Otherwise, a namespace is accepted if it is whitelisted in config
+	for _, ns := range config.Config.Namespaces {
+		if namespace == ns {
+			return true
+		}
+	}
+
+	return false
 }

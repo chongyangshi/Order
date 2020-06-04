@@ -25,28 +25,39 @@ import (
 // state while we process them, as it will simply be covered in the next loop under
 // an eventually consistent model.
 func controlLoop(ctx context.Context) error {
-	// Retrieve DaemonSets currently in cache
+	// Retrieve DaemonSets currently in cache matching target namespaces
 	daemonSets, err := cachers.GetDaemonSets()
 	if err != nil {
 		return err
 	}
 
-	// Retrieve Deployments currently in cache
+	// Retrieve Deployments currently in cache matching target namespaces
 	deployments, err := cachers.GetDeployments()
 	if err != nil {
 		return err
 	}
 
-	// Retrieve jobs currently in cache
+	// Retrieve jobs currently in cache matching target namespaces
 	jobs, err := cachers.GetJobs()
 	if err != nil {
 		return err
 	}
 
-	// Retrieve StatefulSets currently in cache
+	// Retrieve StatefulSets currently in cache matching target namespaces
 	statefulSets, err := cachers.GetStatefulSets()
 	if err != nil {
 		return err
+	}
+
+	// Retrieve state of managed resources
+	managedResources, err := getManagedResourcesInConfig()
+	if err != nil {
+		return err
+	}
+
+	// For each managed resource, compute what pod controllers currently in cache
+	// they apply to.
+	for _, resource := range managedResources {
 	}
 
 }

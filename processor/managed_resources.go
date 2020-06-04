@@ -48,7 +48,7 @@ func (r managedResource) exists() bool {
 // A batch query to map managed resources specified in config to resources which actually
 // exist in the cluster at any given point in time. We can't just run this once and keep
 // a cache of results, as managed resources can be added or deleted between runs.
-func getManagedResourcesByReference() ([]managedResource, error) {
+func getManagedResourcesInConfig() ([]managedResource, error) {
 	if config.Config == nil {
 		logging.Fatal("Error: managed resources in config unexpectedly requested before config is parsed")
 	}

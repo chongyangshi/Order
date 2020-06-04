@@ -26,6 +26,8 @@ const (
 	PodControllerTypeDeployments  = "Deployment"
 	PodControllerTypeJobs         = "Job"
 	PodControllerTypeStatefulSets = "StatefulSet"
+
+	AllNamespaces = "*"
 )
 
 // OrderConfig is a structue of system-wide and managed resource-specific
@@ -37,22 +39,9 @@ type OrderConfig struct {
 	// Namespaces represents rules under which Order should either action on
 	// or ignore a pod controller, depending on what namespace it lives in.
 	// If set, this can preclude pod controllers even if they are secified as
-	// additional_controllers for a managed resource.
-	Namespaces struct {
-		// If Whitelist is set, Order will only perform rolling restarts on pod
-		// controllers in the specific namespaces listed. This includes if you
-		// want to allow Order to perform rolling restarts in kube-system
-		// namespace, which is not recommended.
-		Whitelist []string `yaml:"whitelist"`
-
-		// If Blacklist is set, Order will only perform rolling restarts on pod
-		// controllers in the specific namespaces listed. kube-system will be
-		// blacklisted by default. If you want to allow Order to perform rolling
-		// restarts in kube-system namespace, you need to declare this namespace
-		// in Whitelist, which is not recommended.
-		Blacklist []string `yaml:"blacklist"`
-	} `yaml:"namespace"`
-	XXXParsedNamespaces []string
+	// whitelisted_controllers for a managed resource. If not set or empty,
+	// Order will be applicable to all namespaces except kube-system.
+	Namespaces []string `yaml:"namespaces"`
 
 	// ControllerResyncDuration is a Go duration which defines how frequently controllers
 	// should do a full refresh to ensure that their state is up to date with what's in
@@ -133,25 +122,6 @@ func (c *OrderConfig) Parse() error {
 	// Nil config, it parses to nil
 	if c == nil {
 		return nil
-	}
-
-	// Parse namespaces based on whitelist and blacklist
-	if len(c.Namespaces.Whitelist) > 0 {
-		// kube-system can be specified here if desired
-		c.XXXParsedNamespaces = c.Namespaces.Whitelist
-	} else {
-		kubeSystemFound := false
-		for _, ns := range c.Namespaces.Blacklist {
-			if ns == "kube-system" {
-				kubeSystemFound = true
-				break
-			}
-		}
-
-		// kube-system is blacklisted by default unless in whitelist mode
-		if !kubeSystemFound {
-			c.XXXParsedNamespaces = append(c.Namespaces.Blacklist, "kube-system")
-		}
 	}
 
 	// Parse controller resync duration
