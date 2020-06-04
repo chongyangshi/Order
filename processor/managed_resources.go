@@ -7,120 +7,21 @@ import (
 	"sort"
 	"strings"
 
-	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/icydoge/Order/config"
+	"github.com/icydoge/Order/controllers"
 	"github.com/icydoge/Order/logging"
 	"github.com/icydoge/Order/proto"
 )
 
-func isDaemonSetInScope(ds *appsv1.DaemonSet) bool {
-	if ds == nil {
-		return false
-	}
-
-	return isPodControllerInScope(ds.Name, ds.Namespace, proto.PodControllerTypeDaemonSets)
-}
-
-func isDeploymentInScope(deploy *appsv1.Deployment) bool {
-	if deploy == nil {
-		return false
-	}
-
-	return isPodControllerInScope(deploy.Name, deploy.Namespace, proto.PodControllerTypeDeployments)
-}
-
-func isJobInScope(job *batchv1.Job) bool {
-	if job == nil {
-		return false
-	}
-
-	return isPodControllerInScope(job.Name, job.Namespace, proto.PodControllerTypeJobs)
-}
-
-func isStatefulSetInScope(sts *appsv1.StatefulSet) bool {
-	if sts == nil {
-		return false
-	}
-
-	return isPodControllerInScope(sts.Name, sts.Namespace, proto.PodControllerTypeStatefulSets)
-}
-
-func isPodControllerInScope(name, namespace, controllerType string) bool {
-	if config.Config == nil {
-		logging.Fatal("Error: pod controllers in config expectedly requested before config is parsed")
-	}
-
-	// First check if pod controller's namespace is allowed for changes
-	// By default this is applied to all namespaces except kube-system,
-	// unless specified.
-	namespaceMatched := false
-	for _, ns := range config.Config.XXXParsedNamespaces {
-		if ns == namespace {
-			namespaceMatched = true
-			break
-		}
-	}
-
-	if len(config.Config.XXXParsedNamespaces) > 0 && !namespaceMatched {
-		return false
-	}
-
-	var matchedResources []*proto.ManagedResource
-	for _, resource := range config.Config.ManagedResources {
-		if resource == nil {
-			// Should never happen
-			continue
-		}
-
-		// Check if controller is avoided by rule for that resource
-		controllerAvoided := false
-		for _, avoid := range resource.AvoidControllers {
-			if avoid.Type == controllerType && avoid.Name == name && avoid.Namespace == namespace {
-				controllerAvoided = true
-				break
-			}
-		}
-
-		if controllerAvoided {
-			logging.Debug("Ignoring controller for %s (%s) of type %s due to avoid rule in %v", name, namespace, controllerType, resource)
-			continue
-		}
-
-		podInWhitelist := false
-		for _, item := range resource.AdditionalControllers {
-			if item.Type == controllerType && item.Name == name && item.Namespace == namespace {
-				podInWhitelist = true
-			}
-		}
-
-		switch {
-		case podInWhitelist:
-			// If specified in additional controllers, and not in avoid controllers earlier,
-			// this pod controller is in scope.
-			matchedResources = append(matchedResources, resource)
-		case resource.AvoidAllControllersUnlessWhitelisted && !podInWhitelist:
-			logging.Debug("Ignoring controller for %s (%s) of type %s due to whitelist mode on for %v", name, namespace, controllerType, resource)
-		default:
-			// Whitelist mode not on for resource, this pod controller is in scope by default
-			matchedResources = append(matchedResources, resource)
-		}
-	}
-
-	// If controller is in a global target namespace and matches on at least one managed
-	// resource, it is an in-scope pod controller. This doesn't necessarily means it needs
-	// to be restarted, it depends on whether all its resource versions match the up-to-date
-	// version.
-	return len(matchedResources) > 0
-}
-
-// managedResource represent a resources which can be managed by Order, the underlying
-// supported types may be subject to future extension. Currently Secret and ConfigMap.
+// managedResource represent a resource which can be monitored for change by Order.
+// The underlying supported types may be subject to future extension. Currently Secret
+// and ConfigMap are supported.
 type managedResource struct {
 	secret    *corev1.Secret
 	configMap *corev1.ConfigMap
+	config    *proto.ManagedResource
 }
 
 func (r managedResource) getUID() string {
@@ -132,6 +33,16 @@ func (r managedResource) getUID() string {
 	}
 
 	return ""
+}
+
+func (r managedResource) exists() bool {
+	switch {
+	case r.secret != nil,
+		r.configMap != nil:
+		return true
+	}
+
+	return false
 }
 
 type managedResources struct {
@@ -163,4 +74,81 @@ func (rs *managedResources) getHash() (string, error) {
 	}
 
 	return hex.Dump(hasher.Sum(nil)), nil
+}
+
+// A batch query to map managed resources specified in config to resources which actually
+// exist in the cluster at any given point in time. We can't just run this once and keep
+// a cache of results, as managed resources can be added or deleted between runs.
+func getManagedResourcesByReference() ([]managedResource, error) {
+	if config.Config == nil {
+		logging.Fatal("Error: managed resources in config unexpectedly requested before config is parsed")
+	}
+
+	secrets, err := controllers.GetSecrets()
+	if err != nil {
+		return nil, err
+	}
+
+	configMaps, err := controllers.GetConfigMaps()
+	if err != nil {
+		return nil, err
+	}
+
+	var resources []managedResource
+	for _, resource := range config.Config.ManagedResources {
+		if resource == nil {
+			// Should never happen
+			continue
+		}
+
+		r := managedResource{}
+
+		switch resource.Type {
+		case proto.ManagedResourceTypeSecrets:
+			secret := findSecretByReference(secrets, resource.Name, resource.Namespace)
+			if secret == nil {
+				logging.Debug("Managed Secret %s of namespace %s not found in controller cache", resource.Name, resource.Namespace)
+				break
+			}
+			r.secret = secret
+
+		case proto.ManagedResourceTypeConfigMaps:
+			configMap := findConfigMapByReference(configMaps, resource.Name, resource.Namespace)
+			if configMap == nil {
+				logging.Debug("Managed ConfigMap %s of namespace %s not found in controller cache", resource.Name, resource.Namespace)
+				break
+			}
+			r.configMap = configMap
+
+		default:
+			logging.Debug("Unsupported managed resource type %s, this should not have passed validation.", resource.Type)
+		}
+
+		if r.exists() {
+			r.config = resource
+			resources = append(resources, r)
+		}
+	}
+
+	return resources, nil
+}
+
+func findSecretByReference(secrets []*corev1.Secret, name, namespace string) *corev1.Secret {
+	for _, secret := range secrets {
+		if secret.Name == name && secret.Namespace == namespace {
+			return secret
+		}
+	}
+
+	return nil
+}
+
+func findConfigMapByReference(configMaps []*corev1.ConfigMap, name, namespace string) *corev1.ConfigMap {
+	for _, configMap := range configMaps {
+		if configMap.Name == name && configMap.Namespace == namespace {
+			return configMap
+		}
+	}
+
+	return nil
 }
