@@ -63,7 +63,8 @@ func Init(clientSet kubernetes.Interface, stopChan chan struct{}, resyncInterval
 	}
 }
 
-// GetDaemonSets returns all DaemonSets currently in controller cache
+// GetDaemonSets returns all DaemonSets currently in controller cache whose namespace
+// we care about as set in config.
 func GetDaemonSets() ([]*appsv1.DaemonSet, error) {
 	if dsController == nil {
 		return nil, fmt.Errorf("DaemonSet controller is not yet initialised")
@@ -89,7 +90,8 @@ func GetDaemonSets() ([]*appsv1.DaemonSet, error) {
 	return results, nil
 }
 
-// GetDeployments returns all Deployments currently in controller cache
+// GetDeployments returns all Deployments currently in controller cache whose namespace
+// we care about as set in config.
 func GetDeployments() ([]*appsv1.Deployment, error) {
 	if deployController == nil {
 		return nil, fmt.Errorf("Deployment controller is not yet initialised")
@@ -115,7 +117,8 @@ func GetDeployments() ([]*appsv1.Deployment, error) {
 	return results, nil
 }
 
-// GetJobs returns all Jobs currently in controller cache
+// GetJobs returns all Jobs currently in controller cache whose namespace
+// we care about as set in config.
 func GetJobs() ([]*batchv1.Job, error) {
 	if jobsController == nil {
 		return nil, fmt.Errorf("Jobs controller is not yet initialised")
@@ -141,7 +144,8 @@ func GetJobs() ([]*batchv1.Job, error) {
 	return results, nil
 }
 
-// GetStatefulSets returns all StatefulSets currently in controller cache
+// GetStatefulSets returns all StatefulSets currently in controller whose namespace
+// we care about as set in config.
 func GetStatefulSets() ([]*appsv1.StatefulSet, error) {
 	if stsController == nil {
 		return nil, fmt.Errorf("StatefulSets controller is not yet initialised")
