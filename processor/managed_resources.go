@@ -45,37 +45,6 @@ func (r managedResource) exists() bool {
 	return false
 }
 
-type managedResources struct {
-	resources []*managedResource
-}
-
-// getHash returns a hash identifying the state of managed resources loaded by the target
-// pod controller at the time of last restart. To be used to identify managed resource
-// versions from the last rolling restart in order.kube-system.com/managed-resources-hash.
-func (rs *managedResources) getHash() (string, error) {
-	// Maintain a stable order of resources based on their UIDs
-	resources := rs.resources
-	sort.SliceStable(resources, func(i, j int) bool { return resources[i].getUID() < resources[j].getUID() })
-
-	var resourceVersions []string
-	for _, r := range resources {
-		switch {
-		case r.secret != nil:
-			resourceVersions = append(resourceVersions, fmt.Sprintf("Secret:%v:%s", r.secret.GetUID(), r.secret.ResourceVersion))
-		case r.configMap != nil:
-			resourceVersions = append(resourceVersions, fmt.Sprintf("ConfigMap:%v:%s", r.configMap.GetUID(), r.configMap.ResourceVersion))
-		}
-	}
-
-	hasher := sha256.New()
-	_, err := hasher.Write([]byte(strings.Join(resourceVersions, "-")))
-	if err != nil {
-		return "", err
-	}
-
-	return hex.Dump(hasher.Sum(nil)), nil
-}
-
 // A batch query to map managed resources specified in config to resources which actually
 // exist in the cluster at any given point in time. We can't just run this once and keep
 // a cache of results, as managed resources can be added or deleted between runs.
@@ -151,4 +120,37 @@ func findConfigMapByReference(configMaps []*corev1.ConfigMap, name, namespace st
 	}
 
 	return nil
+}
+
+// This is a representation for managed resources matched to a pod controller based on its
+// references in its pod template.
+type managedResourcesForPodController struct {
+	resources []*managedResource
+}
+
+// getHash returns a hash identifying the state of managed resources loaded by the target
+// pod controller at the time of last restart. To be used to identify managed resource
+// versions from the last rolling restart in order.kube-system.com/managed-resources-hash.
+func (rs *managedResourcesForPodController) getHash() (string, error) {
+	// Maintain a stable order of resources based on their UIDs
+	resources := rs.resources
+	sort.SliceStable(resources, func(i, j int) bool { return resources[i].getUID() < resources[j].getUID() })
+
+	var resourceVersions []string
+	for _, r := range resources {
+		switch {
+		case r.secret != nil:
+			resourceVersions = append(resourceVersions, fmt.Sprintf("Secret:%v:%s", r.secret.GetUID(), r.secret.ResourceVersion))
+		case r.configMap != nil:
+			resourceVersions = append(resourceVersions, fmt.Sprintf("ConfigMap:%v:%s", r.configMap.GetUID(), r.configMap.ResourceVersion))
+		}
+	}
+
+	hasher := sha256.New()
+	_, err := hasher.Write([]byte(strings.Join(resourceVersions, "-")))
+	if err != nil {
+		return "", err
+	}
+
+	return hex.Dump(hasher.Sum(nil)), nil
 }
