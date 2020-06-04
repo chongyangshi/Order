@@ -97,10 +97,10 @@ type ManagedResource struct {
 	// Namespace of the managed resource
 	Namespace string `yaml:"namespace"`
 
-	// AdditionalControllers specify pod controllers which should be restarted if this managed
-	// resource updates, even if it is not formally linked to the managed resource via its
-	// pod template.
-	AdditionalControllers []struct {
+	// WhitelistedControllers if not empty will restrict pod controllers to be restarted
+	// to those matching this list only. It takes precedence over blacklisted_controllers
+	// below
+	WhitelistedControllers []struct {
 		// Name of the nominated pod controller
 		Name string `yaml:"name"`
 
@@ -110,12 +110,12 @@ type ManagedResource struct {
 		// Type of the nominated pod controller, one of DaemonSets, Deployments, Jobs, or
 		// StatefulSets.
 		Type string `yaml:"type"`
-	} `yaml:"additional_controllers"`
+	} `yaml:"whitelisted_controllers"`
 
-	// AvoidControllers specify pod controllers which should not be restarted when
-	// this managed resource updates, even if it is formally linked to the managed resource
-	// via its pod template. This also overrides any matching entry in additional_controllers.
-	AvoidControllers []struct {
+	// BlacklistedControllers prevent pod controllers which would otherwise be restarted
+	// due to change in a managed resource they mount from being restarted by Order. It
+	// is ineffective if whitelisted_controllers is set above.
+	BlacklistedControllers []struct {
 		// Name of the nominated pod controller
 		Name string `yaml:"name"`
 
@@ -125,12 +125,7 @@ type ManagedResource struct {
 		// Type of the nominated pod controller, one of DaemonSets, Deployments, Jobs, or
 		// StatefulSets.
 		Type string `yaml:"type"`
-	} `yaml:"avoid_controllers"`
-
-	// AvoidAllControllersUnlessWhitelisted can be set instead of AvoidControllers to make
-	// Order avoid performing actions on all controllers unless it is explicitly whitelisted
-	// as AdditionalControllers.
-	AvoidAllControllersUnlessWhitelisted bool `yaml:"avoid_all_controllers_unless_whitelisted"`
+	} `yaml:"blacklisted_controllers"`
 }
 
 // Parse populates parsed fields of the config which are derived from YAML values.
