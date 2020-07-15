@@ -9,7 +9,7 @@ import (
 	appslisters "k8s.io/client-go/listers/apps/v1"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/icydoge/Order/logging"
+	"github.com/chongyangshi/Order/logging"
 )
 
 // deploymentsCacheController holds an eventually consistent cache of deployments

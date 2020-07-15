@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/icydoge/Order/config"
-	"github.com/icydoge/Order/logging"
+	"github.com/chongyangshi/Order/config"
+	"github.com/chongyangshi/Order/logging"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/labels"

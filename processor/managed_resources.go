@@ -9,10 +9,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/icydoge/Order/config"
-	"github.com/icydoge/Order/controllers"
-	"github.com/icydoge/Order/logging"
-	"github.com/icydoge/Order/proto"
+	"github.com/chongyangshi/Order/config"
+	"github.com/chongyangshi/Order/controllers"
+	"github.com/chongyangshi/Order/logging"
+	"github.com/chongyangshi/Order/proto"
 )
 
 // managedResource represent a resource which can be monitored for change by Order.

@@ -9,7 +9,7 @@ import (
 	batchlisters "k8s.io/client-go/listers/batch/v1"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/icydoge/Order/logging"
+	"github.com/chongyangshi/Order/logging"
 )
 
 // jobsCacheController holds an eventually consistent cache of batch jobs

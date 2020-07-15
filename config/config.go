@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/icydoge/Order/proto"
+	"github.com/chongyangshi/Order/proto"
 
 	yaml "gopkg.in/yaml.v2"
 )

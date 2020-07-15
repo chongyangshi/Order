@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/icydoge/Order/config"
+	"github.com/chongyangshi/Order/config"
 )
 
 var l = log.New(os.Stdout, "[Order] ", log.Ldate|log.Ltime)

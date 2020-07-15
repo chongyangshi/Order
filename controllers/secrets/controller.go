@@ -9,7 +9,7 @@ import (
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/icydoge/Order/logging"
+	"github.com/chongyangshi/Order/logging"
 )
 
 // SecretsController is a controller monitoring changes to secrets

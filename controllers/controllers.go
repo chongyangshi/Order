@@ -8,10 +8,10 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/icydoge/Order/controllers/cachers"
-	"github.com/icydoge/Order/controllers/configmaps"
-	"github.com/icydoge/Order/controllers/secrets"
-	"github.com/icydoge/Order/logging"
+	"github.com/chongyangshi/Order/controllers/cachers"
+	"github.com/chongyangshi/Order/controllers/configmaps"
+	"github.com/chongyangshi/Order/controllers/secrets"
+	"github.com/chongyangshi/Order/logging"
 )
 
 var (

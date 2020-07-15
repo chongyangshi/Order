@@ -11,9 +11,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/icydoge/Order/config"
-	"github.com/icydoge/Order/controllers"
-	"github.com/icydoge/Order/logging"
+	"github.com/chongyangshi/Order/config"
+	"github.com/chongyangshi/Order/controllers"
+	"github.com/chongyangshi/Order/logging"
 )
 
 type stop struct{}
